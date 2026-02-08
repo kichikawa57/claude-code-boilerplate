@@ -13,7 +13,6 @@ git clone https://github.com/yourname/claude-code-boilerplate.git
 
 # 3. プロジェクト情報を編集
 cd /path/to/your-project
-vim CLAUDE.md
 
 # 4. Claude Codeを起動
 claude
@@ -23,37 +22,37 @@ claude
 
 ```
 .claude/
-├── settings.json          # チーム共有設定（permissions, hooks）
-├── settings.local.json    # 個人設定（.gitignore対象）
-├── CLAUDE.md              # .claude内メモリ
+├── settings.json              # チーム共有設定（permissions, hooks）
+├── settings.local.json        # 個人設定（.gitignore対象）
+├── settings.local.json.example # settings.local.json のテンプレート
+├── CLAUDE.md                  # .claude内メモリ
 │
-├── agents/                # 専門家エージェント
-│   ├── reviewer.md        #   コードレビュー
-│   ├── architect.md       #   設計・アーキテクチャ
-│   ├── test-writer.md     #   テスト作成
-│   └── debugger.md        #   デバッグ
+├── agents/                    # 専門家エージェント
+│   ├── reviewer.md            #   コードレビュー
+│   ├── architect.md           #   設計・アーキテクチャ
+│   ├── test-writer.md         #   テスト作成
+│   └── debugger.md            #   デバッグ
 │
-├── skills/                # スラッシュコマンド
-│   ├── overview/          #   /overview - プロジェクト俯瞰
-│   ├── gen/               #   /gen - コード生成
-│   ├── add-test/          #   /add-test - テスト追加
-│   ├── create-pr/         #   /create-pr - PR作成
-│   ├── check/             #   /check - 品質チェック
-│   ├── troubleshoot/      #   /troubleshoot - エラー解決
-│   └── doc/               #   /doc - ドキュメント生成
+├── skills/                    # カスタムスキル
+│   ├── overview/              #   /overview - プロジェクト俯瞰
+│   ├── gen/                   #   /gen - コード生成
+│   ├── add-test/              #   /add-test - テスト追加
+│   ├── create-pr/             #   /create-pr - PR作成
+│   ├── check/                 #   /check - 品質チェック
+│   ├── troubleshoot/          #   /troubleshoot - エラー解決
+│   └── doc/                   #   /doc - ドキュメント生成
 │
-├── rules/                 # 自動適用ルール
-│   ├── code-style.md      #   コーディングスタイル
-│   ├── git-workflow.md    #   Gitワークフロー
-│   ├── testing.md         #   テスト規約
-│   ├── security.md        #   セキュリティ
-│   └── documentation.md   #   ドキュメント規約
+├── rules/                     # 自動適用ルール
+│   ├── code-style.md          #   コーディングスタイル
+│   ├── git-workflow.md        #   Gitワークフロー
+│   ├── testing.md             #   テスト規約
+│   ├── security.md            #   セキュリティ
+│   └── documentation.md       #   ドキュメント規約
 │
-├── hooks/                 # 自動実行スクリプト
-│   ├── protect-files.sh   #   機密ファイル保護
-│   └── compact-reminder.md #  コンパクト時リマインダー
+├── hooks/                     # 自動実行スクリプト
+│   └── protect-files.sh       #   機密ファイル保護
 │
-└── agent-memory/          # サブエージェント永続メモリ（自動生成）
+└── agent-memory/              # サブエージェント永続メモリ（自動生成）
     ├── reviewer/MEMORY.md
     ├── architect/MEMORY.md
     ├── debugger/MEMORY.md
@@ -65,7 +64,7 @@ claude
 ### Agents（専門家エージェント）
 
 Claudeが自動的にタスクを委譲する専門家エージェント。メインのコンテキストを消費しません。
-各エージェントは永続メモリ（`memory: project`）を持ち、知見を `.claude/agent-memory/` に自動蓄積します。
+各エージェントは永続メモリ（`memory: project`）を持ち、開発中の知見をセッションを跨いで自動蓄積します。メモリは `.claude/agent-memory/<agent名>/MEMORY.md` に保存され、git管理でチームに共有できます（初回のエージェント実行時に自動生成）。
 
 | エージェント  | 役割                                          | モデル | メモリに蓄積する知見           |
 | ------------- | --------------------------------------------- | ------ | ------------------------------ |
@@ -83,7 +82,14 @@ Claudeが自動的にタスクを委譲する専門家エージェント。メ�
 「このエラーの原因を調べて」→ debugger
 ```
 
-### Skills（スラッシュコマンド）
+### Skills（カスタムスキル）
+
+Skills は Claude Code のカスタムアクション機能です。旧来のスラッシュコマンド（`.claude/commands/`）はSkillsに統合されました。
+
+**2つの実行方法:**
+
+- **`/command`（ユーザー明示実行）**: チャットで `/overview` のようにスラッシュコマンドとして直接呼び出す
+- **AI自動実行**: Claudeが会話の文脈から必要と判断した場合に自動的に実行する（`create-pr` のように無効化も可能）
 
 | コマンド                | 説明                           |    AI自動実行     |
 | ----------------------- | ------------------------------ | :---------------: |
@@ -111,42 +117,6 @@ Claudeが自動的にタスクを委譲する専門家エージェント。メ�
 | -------------- | ---------------------------------- |
 | ファイル編集前 | 機密ファイル・ロックファイルの保護 |
 | ファイル編集後 | Prettier自動フォーマット           |
-| コンパクト時   | リマインダー読み込み               |
-
-### Persistent Memory（永続メモリ）
-
-開発中の知見がセッションを跨いで自動蓄積される仕組みです。
-
-#### メモリの種類と保存先
-
-| 種類                     | 保存先                            | git管理  | 用途                     |
-| ------------------------ | --------------------------------- | -------- | ------------------------ |
-| サブエージェントメモリ   | `.claude/agent-memory/<agent名>/` | される   | 各エージェントの専門知見 |
-| メインエージェントメモリ | `~/.claude/projects/.../memory/`  | されない | 個人の作業メモ           |
-| ルール                   | `.claude/rules/`                  | される   | 確定した規約・ルール     |
-
-#### 知見の流れ
-
-```
-開発中
-  ↓
-サブエージェントが知見を自動記録（.claude/agent-memory/）
-  ↓
-git管理でチームに共有
-  ↓
-確定したルールは .claude/rules/ に昇格
-```
-
-#### メモリの確認・編集
-
-```bash
-# メモリファイルを開く
-/memory
-
-# 各エージェントのメモリを確認
-cat .claude/agent-memory/reviewer/MEMORY.md
-cat .claude/agent-memory/architect/MEMORY.md
-```
 
 ### Settings（権限設定）
 
